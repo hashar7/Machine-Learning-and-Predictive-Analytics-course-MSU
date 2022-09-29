@@ -1,0 +1,36 @@
+library(rpart)
+library(rpart.plot)
+library(ISLR)
+library(knitr)
+library(MASS)
+
+data <- read.csv("test_sample.csv")
+
+set.seed(1)
+sfit <- rpart(Y ~ .,data = data, method ='poisson', control = rpart.control(cp = 0))
+(best.CP = prtm$cptable[which.min(sfit$cptable[,"xerror"]),"CP"])
+set.seed(1)
+sfit_opt <- rpart(Y ~ .,data = data, method ='poisson', control = rpart.control(cp = best.CP))
+prp(sfit_opt)
+
+set.seed(1)
+modnb <- glm.nb(Y ~., data = data)
+
+rmse <- function(x) sqrt(mean(x^2))
+treeRmse = rmse(resid(prunedTree))
+nbRmse = rmse(modnb$residuals)
+options(digits=4)
+print('MSE')
+print(c(Tree = treeRmse, Nb = nbRmse))
+
+newdata = rbind(data, c(0, 4, 4, 4))
+last = nrow(newdata)
+preTree = predict(sfit_opt, newdata = newdata[last,2:4])
+pred0Tree = dpois(0, lambda = preTree)
+mu = predict(modnb, newdata[last, 2:4], type='response')
+pred0nb = dnbinom(0, mu=mu, size=nbfit$theta)
+
+print('Predicted mean')
+print(c(Tree = preTree, Nb = mu))
+print('Zero prediction')
+print(c(Tree = pred0Tree, Nb = pred0nb))
